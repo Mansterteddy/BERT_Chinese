@@ -33,7 +33,7 @@ from torch.utils.data.distributed import DistributedSampler
 
 import metrics
 from BERT.tokenization import BertTokenizer
-from BERT.modeling import BertForSequenceRelevance
+from BERT.modeling import BertForSequenceRelevance_Both, BertConfig
 from BERT.optimization import BertAdam
 from BERT.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 
@@ -571,8 +571,8 @@ def main():
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
 
     # Prepare model
-    #model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cpu", embedding_size=args.embedding_size)
-    model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cuda", embedding_size=args.embedding_size)
+    #model = BertForSequenceRelevance_Both.from_pretrained(args.bert_model, device="cpu", embedding_size=args.embedding_size)
+    model = BertForSequenceRelevance_Both.from_pretrained(args.bert_model, device="cuda", embedding_size=args.embedding_size)
 
     if args.fp16:
         model.half()
@@ -772,8 +772,12 @@ def main():
         saved_model_filename =  "pytorch_model.bin"
         saved_model_file =  os.path.join(args.output_dir, saved_model_filename)
         model_state_dict = torch.load(saved_model_file)
-        #model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cpu", embedding_size=args.embedding_size)
-        model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cuda", embedding_size=args.embedding_size)
+        config_filename = os.path.join(args.bert_model, "bert_config.json")
+        bert_config = BertConfig.from_json_file(config_filename)
+        model = BertForSequenceRelevance_Both(bert_config, device="cuda", embedding_size=args.embedding_size)
+        model.load_state_dict(model_state_dict)
+        #model = BertForSequenceRelevance_Both.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cpu", embedding_size=args.embedding_size)
+        #model = BertForSequenceRelevance_Both.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cuda", embedding_size=args.embedding_size)
         model.to(device)
         model.eval()
 

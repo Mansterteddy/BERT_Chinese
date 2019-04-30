@@ -33,6 +33,7 @@ from torch import nn
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
 
+from .FocalLoss import *
 from .file_utils import cached_path
 
 logger = logging.getLogger(__name__)
@@ -876,9 +877,12 @@ class BertForSequenceClassification(PreTrainedBertModel):
     logits = model(input_ids, token_type_ids, input_mask)
     ```
     """
-    def __init__(self, config, num_labels=2):
+    def __init__(self, config, num_labels=2, focal_loss=False, gamma=0, alpha=None):
         super(BertForSequenceClassification, self).__init__(config)
         self.num_labels = num_labels
+        self.focal_loss = focal_loss
+        self.gamma = gamma
+        self.alpha = alpha 
         self.bert = BertModel(config)
         self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.classifier = nn.Linear(config.hidden_size, num_labels)
@@ -890,9 +894,14 @@ class BertForSequenceClassification(PreTrainedBertModel):
         logits = self.classifier(pooled_output)
 
         if labels is not None:
-            loss_fct = CrossEntropyLoss()
-            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-            return loss
+            if self.focal_loss == False:
+                loss_fct = CrossEntropyLoss()
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                return loss
+            else:
+                loss_fct = FocalLoss(gamma=self.gamma, alpha=self.alpha)
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                return loss
         else:
             softmax_layer = nn.Softmax(dim=1)
             scores = softmax_layer(logits)
@@ -947,17 +956,15 @@ class BertForSequenceRelevance(PreTrainedBertModel):
     
     """
 
-    def __init__(self, config, device="cpu", input_size=768, embedding_size=200):
+    def __init__(self, config, device="cpu", input_size=768, embedding_size=64, dropout_prob=0.9):
         super(BertForSequenceRelevance, self).__init__(config)
-        self.bert = BertModel(config)
-        self.dropout = nn.Dropout(config.hidden_dropout_prob)
         self.device = device
         self.input_size = input_size
         self.embedding_size = embedding_size
-
+        self.bert = BertModel(config)
+        self.dropout = nn.Dropout(dropout_prob)
         self.q_fc = nn.Linear(input_size, embedding_size)
         self.p_fc = nn.Linear(input_size, embedding_size)
-
         self.apply(self.init_bert_weights)
 
     def forward(self, q_input_ids, p_input_ids, q_mask, p_mask, q_segment_ids, p_segment_ids, labels=None):
@@ -988,7 +995,57 @@ class BertForSequenceRelevance(PreTrainedBertModel):
             scores = torch.matmul(q_mat, p_mat)
             scores = scores.view(batch_size, -1)
             scores = (scores + 1) / 2
-            return scores
+            return scores, q_vec, p_vec
+
+class BertForSequenceRelevance_Both(PreTrainedBertModel):
+    """BERT model for recall.
+    
+    This module is composed of the BERT model with Negative Sampling Loss.
+    
+    """
+
+    def __init__(self, config, device="cpu", input_size=768, embedding_size=64, dropout_prob=0.9):
+        super(BertForSequenceRelevance_Both, self).__init__(config)
+        self.device = device
+        self.input_size = input_size
+        self.embedding_size = embedding_size
+        self.bert_a = BertModel(config)
+        self.bert_b = BertModel(config)
+        self.dropout_a = nn.Dropout(dropout_prob)
+        self.dropout_b = nn.Dropout(dropout_prob)
+        self.q_fc = nn.Linear(input_size, embedding_size)
+        self.p_fc = nn.Linear(input_size, embedding_size)
+        self.apply(self.init_bert_weights)
+
+    def forward(self, q_input_ids, p_input_ids, q_mask, p_mask, q_segment_ids, p_segment_ids, labels=None):
+
+        q_sentence_output, q_pooled_output = self.bert_a(q_input_ids, q_segment_ids, q_mask, output_all_encoded_layers=False)
+        p_sentence_output, p_pooled_output = self.bert_b(p_input_ids, p_segment_ids, p_mask, output_all_encoded_layers=False)
+
+        [batch_size, vec_dim] = q_pooled_output.size()
+
+        q_pooled_output = self.dropout_a(q_pooled_output)
+        p_pooled_output = self.dropout_b(p_pooled_output)
+
+        q_vec = self.q_fc(q_pooled_output)
+        p_vec = self.p_fc(p_pooled_output)
+
+        q_vec = F.normalize(q_vec, p=2, dim=1)
+        p_vec = F.normalize(p_vec, p=2, dim=1)
+
+        if labels is not None: 
+            dot_product = torch.matmul(q_vec, p_vec.t())
+            mask = torch.eye(batch_size).to(self.device)
+            loss = F.softmax(dot_product, dim=1) * mask
+            loss = (-loss.sum(dim=1).log()).mean()
+            return loss
+        else:
+            q_mat = q_vec.view(batch_size, 1, -1)
+            p_mat = p_vec.view(batch_size, self.embedding_size, -1)
+            scores = torch.matmul(q_mat, p_mat)
+            scores = scores.view(batch_size, -1)
+            scores = (scores + 1) / 2
+            return scores, q_vec, p_vec
 
 class BertForMultipleChoice(PreTrainedBertModel):
     """BERT model for multiple choice tasks.
