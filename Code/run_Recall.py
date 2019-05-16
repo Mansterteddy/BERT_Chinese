@@ -467,11 +467,11 @@ def main():
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
-                        default=5e-5,
+                        default=3e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
-                        default=3.0,
+                        default=10.0,
                         type=float,
                         help="Total number of training epochs to perform.")
     parser.add_argument("--warmup_proportion",
@@ -543,9 +543,9 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    #torch.cuda.manual_seed_all(args.seed)
+    #torch.backends.cudnn.benchmark = False
+    #torch.backends.cudnn.deterministic = True
 
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
@@ -576,8 +576,10 @@ def main():
             len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps * args.num_train_epochs)
 
     # Prepare model
-    #model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cpu", embedding_size=args.embedding_size)
-    model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cuda", embedding_size=args.embedding_size)
+    if args.no_cuda:
+        model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cpu", embedding_size=args.embedding_size)
+    else:
+        model = BertForSequenceRelevance.from_pretrained(args.bert_model, device="cuda", embedding_size=args.embedding_size)
 
     if args.fp16:
         model.half()
@@ -678,6 +680,7 @@ def main():
             tr_loss = 0
             nb_tr_examples, nb_tr_steps = 0, 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+                                
                 batch = tuple(t.to(device) for t in batch)
                 query_ids, psg_ids, query_mask, psg_mask, query_segment_ids, psg_segment_ids, labels_id = batch                
                 loss = model(query_ids, psg_ids, query_mask, psg_mask, query_segment_ids, psg_segment_ids, labels_id)
@@ -710,6 +713,7 @@ def main():
                     # Evaluate eval set AUC
                     eval_score_list = np.array([])
                     eval_label_list = np.array([])
+                    ev_loss = 0
                     nb_eval_steps, nb_eval_examples = 0, 0
 
                     for eval_query_ids, eval_psg_ids, eval_query_mask, eval_psg_mask, eval_query_segment_ids, eval_psg_segment_ids, eval_labels_id in tqdm(eval_dataloader, desc="Evaluating"): 
@@ -722,8 +726,10 @@ def main():
                         eval_labels_id = eval_labels_id.to(device)
                 
                         with torch.no_grad():
+                            eval_loss = model(eval_query_ids, eval_psg_ids, eval_query_mask, eval_psg_mask, eval_query_segment_ids, eval_psg_segment_ids, eval_labels_id)
                             logits, q_vec, p_vec = model(eval_query_ids, eval_psg_ids, eval_query_mask, eval_psg_mask, eval_query_segment_ids, eval_psg_segment_ids)
 
+                        ev_loss += eval_loss.item()
                         logits = logits.detach().cpu().numpy()
                         eval_labels_id = eval_labels_id.to('cpu').numpy()
                         eval_score_list = np.append(eval_score_list, logits[:, 0])
@@ -733,6 +739,7 @@ def main():
                         nb_eval_steps += 1
                 
                     eval_auc = metrics.calAUC(eval_score_list, eval_label_list)
+                    avg_ev_loss = ev_loss / float(nb_eval_steps)
 
                     if (step + 1) == args.iters:
                         eval_best_auc = eval_auc
@@ -758,6 +765,7 @@ def main():
                         "cur_epoch": cur_epoch,
                         "cur_step": global_step,
                         "eval_auc": eval_auc,
+                        "eval_loss": avg_ev_loss,
                         "best_eval_auc": eval_best_auc
                     }
 
@@ -771,14 +779,31 @@ def main():
 
                     model.train()
 
+            avg_train_loss = tr_loss / float(nb_tr_steps)
+            train_eval_result = {
+                "cur_epoch": cur_epoch,
+                "train_loss": avg_train_loss
+            }
+
+            with open(output_eval_file, "a+") as writer:
+                logger.info("***** Eval Epoch Train Loss *****")
+                for key in sorted(train_eval_result.keys()):
+                    logger.info("  %s = %s", key, str(train_eval_result[key]))
+                    writer.write("%s = %s\n" % (key, str(train_eval_result[key])))
+                writer.write("\n")   
+
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
 
         # Load a trained model that you have fine-tuned
         saved_model_filename =  "pytorch_model.bin"
         saved_model_file =  os.path.join(args.output_dir, saved_model_filename)
-        model_state_dict = torch.load(saved_model_file)
-        #model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cpu", embedding_size=args.embedding_size)
-        model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cuda", embedding_size=args.embedding_size)
+        if args.no_cuda:
+            model_state_dict = torch.load(saved_model_file, map_location="cpu")
+            model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cpu", embedding_size=args.embedding_size)
+        else:
+            model_state_dict = torch.load(saved_model_file)
+            model = BertForSequenceRelevance.from_pretrained(args.bert_model, state_dict=model_state_dict, device="cuda", embedding_size=args.embedding_size)
+        
         model.to(device)
         model.eval()
 

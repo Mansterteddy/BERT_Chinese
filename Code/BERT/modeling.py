@@ -921,9 +921,20 @@ class BertForSequenceRelevance(PreTrainedBertModel):
         self.input_size = input_size
         self.embedding_size = embedding_size
         self.bert = BertModel(config)
-        self.dropout = nn.Dropout(dropout_prob)
+        self.q_dropout = nn.Dropout(dropout_prob)
+        self.p_dropout = nn.Dropout(dropout_prob)
         self.fc = nn.Linear(input_size, embedding_size)
-        self.apply(self.init_bert_weights)
+        self.apply(self.init_bert_weights)        
+        self.truncated_normal_(self.fc.weight, std=0.02)
+        nn.init.zeros_(self.fc.bias)
+
+    def truncated_normal_(self, tensor, mean=0, std=1):
+        size = tensor.shape
+        tmp = tensor.new_empty(size + (4,)).normal_()
+        valid = (tmp < 2) & (tmp > -2)
+        ind = valid.max(-1, keepdim=True)[1]
+        tensor.data.copy_(tmp.gather(-1, ind).squeeze(-1))
+        tensor.data.mul_(std).add_(mean)
 
     def forward(self, q_input_ids, p_input_ids, q_mask=None, p_mask=None, q_segment_ids=None, p_segment_ids=None, labels=None):
 
@@ -932,8 +943,8 @@ class BertForSequenceRelevance(PreTrainedBertModel):
 
         [batch_size, vec_dim] = q_pooled_output.size()
 
-        q_pooled_output = self.dropout(q_pooled_output)
-        p_pooled_output = self.dropout(p_pooled_output)
+        q_pooled_output = self.q_dropout(q_pooled_output)
+        p_pooled_output = self.p_dropout(p_pooled_output)
 
         q_vec = self.fc(q_pooled_output)
         p_vec = self.fc(p_pooled_output)

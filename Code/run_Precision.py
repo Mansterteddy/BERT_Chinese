@@ -389,7 +389,7 @@ def main():
                         type=int,
                         help="Total batch size for eval.")
     parser.add_argument("--learning_rate",
-                        default=5e-5,
+                        default=3e-5,
                         type=float,
                         help="The initial learning rate for Adam.")
     parser.add_argument("--num_train_epochs",
@@ -468,9 +468,9 @@ def main():
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
     torch.cuda.manual_seed(args.seed)
-    torch.cuda.manual_seed_all(args.seed)
-    torch.backends.cudnn.benchmark = False
-    torch.backends.cudnn.deterministic = True
+    #torch.cuda.manual_seed_all(args.seed)
+    #torch.backends.cudnn.benchmark = False
+    #torch.backends.cudnn.deterministic = True
 
     if n_gpu > 0:
         torch.cuda.manual_seed_all(args.seed)
@@ -692,6 +692,19 @@ def main():
                         writer.write("\n")                  
 
                     model.train()
+
+            avg_train_loss = tr_loss / float(nb_tr_steps)
+            train_eval_result = {
+                "cur_epoch": cur_epoch,
+                "train_loss": avg_train_loss,
+            }
+
+            with open(output_eval_file, "a+") as writer:
+                logger.info("***** Eval Epoch Train Loss *****")
+                for key in sorted(train_eval_result.keys()):
+                    logger.info("  %s = %s", key, str(train_eval_result[key]))
+                    writer.write("%s = %s\n" % (key, str(train_eval_result[key])))
+                writer.write("\n")     
 
     if args.do_eval and (args.local_rank == -1 or torch.distributed.get_rank() == 0):
 
