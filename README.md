@@ -6,12 +6,6 @@ Different NLP tasks based on BERT for Chinese using [huggingface's pytorch imple
 
 2. Recall Model;
 
-3. NER;
+3. Relation Extraction: Achieve 98.7% accuracy on [Relation Multiple Chi dataset](https://github.com/crownpku/Small-Chinese-Corpus/tree/master/relation_multiple_chi);
 
-4. Relation Extraction: Achieve 98.7% accuracy on [Relation Multiple Chi dataset](https://github.com/crownpku/Small-Chinese-Corpus/tree/master/relation_multiple_chi);
-
-5. Text Generation;
-
-6. Question Generation;
-
-7. BERT MASK N-Gram;
+4. MRC Model;
