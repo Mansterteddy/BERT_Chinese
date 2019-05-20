@@ -949,18 +949,20 @@ class BertForSequenceRelevance(PreTrainedBertModel):
         q_vec = self.fc(q_pooled_output)
         p_vec = self.fc(p_pooled_output)
 
-        q_vec = F.normalize(q_vec, p=2, dim=1)
-        p_vec = F.normalize(p_vec, p=2, dim=1)
+        normalized_q_vec = F.normalize(q_vec, p=2, dim=1)
+        normalized_p_vec = F.normalize(p_vec, p=2, dim=1)
 
         if labels is not None: 
             dot_product = torch.matmul(q_vec, p_vec.t())
             mask = torch.eye(batch_size).to(self.device)
             loss = F.softmax(dot_product, dim=1) * mask
             loss = (-loss.sum(dim=1).log()).mean()
+            #loss = F.log_softmax(dot_product, dim=1) * mask
+            #loss = (-loss.sum(dim=1)).mean() 
             return loss
         else:
-            q_mat = q_vec.view(batch_size, 1, -1)
-            p_mat = p_vec.view(batch_size, self.embedding_size, -1)
+            q_mat = normalized_q_vec.view(batch_size, 1, -1)
+            p_mat = normalized_p_vec.view(batch_size, self.embedding_size, -1)
             scores = torch.matmul(q_mat, p_mat)
             scores = scores.view(batch_size, -1)
             scores = (scores + 1) / 2
