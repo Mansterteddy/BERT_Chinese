@@ -955,10 +955,10 @@ class BertForSequenceRelevance(PreTrainedBertModel):
         if labels is not None: 
             dot_product = torch.matmul(q_vec, p_vec.t())
             mask = torch.eye(batch_size).to(self.device)
-            loss = F.softmax(dot_product, dim=1) * mask
-            loss = (-loss.sum(dim=1).log()).mean()
-            #loss = F.log_softmax(dot_product, dim=1) * mask
-            #loss = (-loss.sum(dim=1)).mean() 
+            #loss = F.softmax(dot_product, dim=1) * mask
+            #loss = (-loss.sum(dim=1).log()).mean()
+            loss = F.log_softmax(dot_product, dim=1) * mask
+            loss = (-loss.sum(dim=1)).mean() 
             return loss
         else:
             q_mat = normalized_q_vec.view(batch_size, 1, -1)
