@@ -1,7 +1,6 @@
 /Code/__pycache__/*
 /Code/BERT/__pycache__/*
 /Code/Utils/focal_loss/__pycache__/*
-/Chinese/*
 /Model/*
 /Pretrained/*
 /Data/*

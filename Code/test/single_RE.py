@@ -1,9 +1,13 @@
+import os
+import sys
+sys.path.append(os.path.abspath('../'))
+
 import numpy as np
 import torch
 from BERT import BertConfig, BertTokenizer, BertForSequenceClassification
 
 id2relation = []
-with open("../Data/relation2id.txt", "r", encoding="utf8") as f:
+with open("../../Data/relation2id.txt", "r", encoding="utf8") as f:
     for line in f:
         relation = line.strip().split(" ")[0]
         id2relation.append(relation)
@@ -23,11 +27,11 @@ def _truncate_seq_pair_RE(tokens_name_1, tokens_name_2, tokens_psg, max_length):
             break
         tokens_psg.pop()
 
-vocab_file = "../Chinese/vocab.txt"
+vocab_file = "../../Pretrained/BERT-Chinese/vocab.txt"
 tokenizer = BertTokenizer.from_pretrained(vocab_file, do_lower_case=True)
 
-model_state_dict = torch.load("../Model/BERT_RE.bin", map_location="cpu")
-model = BertForSequenceClassification.from_pretrained("../Chinese/", state_dict=model_state_dict, num_labels=12)
+model_state_dict = torch.load("../../Model/RE/BERT_RE.bin", map_location="cpu")
+model = BertForSequenceClassification.from_pretrained("../../Pretrained/BERT-Chinese/", state_dict=model_state_dict, num_labels=12)
 model.eval()
 
 input_name_1 = "吕惠如"

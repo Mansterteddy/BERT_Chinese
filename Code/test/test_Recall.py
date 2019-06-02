@@ -1,3 +1,7 @@
+import os
+import sys
+sys.path.append(os.path.abspath('../'))
+
 import torch
 from BERT import BertConfig, BertForSequenceRelevance
 
@@ -5,7 +9,7 @@ from BERT import BertConfig, BertForSequenceRelevance
 
 # CPU Test
 #model = BertForSequenceRelevance.from_pretrained("../Chinese/", state_dict=model_state_dict, device="cpu")
-model = BertForSequenceRelevance.from_pretrained("../Pretrained/ERNIE/", device="cpu")
+model = BertForSequenceRelevance.from_pretrained("../../Pretrained/ERNIE/", device="cpu")
 for name, param in model.named_parameters():
     if param.requires_grad:
         print(name)
@@ -23,7 +27,7 @@ print("p_vec: ", p_vec)
 
 # GPU Test
 #model = BertForSequenceRelevance.from_pretrained("../Chinese/", state_dict=model_state_dict, device="cuda")
-model = BertForSequenceRelevance.from_pretrained("../Pretrained/ERNIE/", device="cuda")
+model = BertForSequenceRelevance.from_pretrained("../../Pretrained/ERNIE/", device="cuda")
 model.to("cuda")
 model.eval()
 q_input_ids = torch.LongTensor([[31, 51, 99], [15, 5, 0]]).to("cuda")

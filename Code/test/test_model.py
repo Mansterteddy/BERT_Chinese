@@ -1,6 +1,10 @@
 #encoding=utf-8
 #Check the differences between BERT-Chinese, BERT-Multi-Lingual, ERNIE.
 
+import os
+import sys
+sys.path.append(os.path.abspath('../'))
+
 import torch
 import torch.autograd as autograd
 import torch.nn.functional as F
@@ -53,24 +57,24 @@ if __name__ == "__main__":
 
     # BERT-Chinese
     # Load pre-trained model tokenizer (vocabulary)
-    tokenizer = BertTokenizer.from_pretrained("../Pretrained/BERT/vocab.txt")
+    tokenizer = BertTokenizer.from_pretrained("../../Pretrained/BERT-Chinese/vocab.txt")
     # Load pre-trained model (weights)
-    model = BertForMaskedLM.from_pretrained("../Pretrained/BERT/")
+    model = BertForMaskedLM.from_pretrained("../../Pretrained/BERT-Chinese/")
     model.eval()
     test(tokenizer, model)
 
     # BERT-Multi-Lingual
     # Load pre-trained model tokenizer (vocabulary)
-    tokenizer = BertTokenizer.from_pretrained("../Pretrained/Multi-Lingual/vocab.txt")
+    tokenizer = BertTokenizer.from_pretrained("../../Pretrained/Multi-Lingual/vocab.txt")
     # Load pre-trained model (weights)
-    model = BertForMaskedLM.from_pretrained("../Pretrained/Multi-Lingual/")
+    model = BertForMaskedLM.from_pretrained("../../Pretrained/Multi-Lingual/")
     model.eval()
     test(tokenizer, model)
 
     # ERNIE
     # Load pre-trained model tokenizer (vocabulary)
-    tokenizer = BertTokenizer.from_pretrained("../Pretrained/ERNIE/vocab.txt")
+    tokenizer = BertTokenizer.from_pretrained("../../Pretrained/ERNIE/vocab.txt")
     # Load pre-trained model (weights)
-    model = BertForMaskedLM.from_pretrained("../Pretrained/ERNIE/")
+    model = BertForMaskedLM.from_pretrained("../../Pretrained/ERNIE/")
     model.eval()
     test(tokenizer, model)

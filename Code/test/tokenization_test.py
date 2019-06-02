@@ -17,6 +17,8 @@ from __future__ import division
 from __future__ import print_function
 
 import os
+import sys
+sys.path.append(os.path.abspath('../'))
 import unittest
 
 from BERT.tokenization import (BertTokenizer, BasicTokenizer, WordpieceTokenizer, _is_whitespace, _is_control, _is_punctuation)
