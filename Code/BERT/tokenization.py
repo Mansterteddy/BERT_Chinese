@@ -22,6 +22,7 @@ import collections
 import unicodedata
 import os
 import logging
+import six
 
 from .file_utils import cached_path
 
@@ -70,6 +71,28 @@ def whitespace_tokenize(text):
         return []
     tokens = text.split()
     return tokens
+
+def printable_text(text):
+    """Returns text encoded in a way suitable for print or `tf.logging`."""
+
+    # These functions want `str` for both Python2 and Python3, but in one case
+    # it's a Unicode string and in the other it's a byte string.
+    if six.PY3:
+        if isinstance(text, str):
+            return text
+        elif isinstance(text, bytes):
+            return text.decode("utf-8", "ignore")
+        else:
+            raise ValueError("Unsupported string type: %s" % (type(text)))
+    elif six.PY2:
+        if isinstance(text, str):
+            return text
+        elif isinstance(text, unicode):
+            return text.encode("utf-8")
+        else:
+            raise ValueError("Unsupported string type: %s" % (type(text)))
+    else:
+        raise ValueError("Not running on Python2 or Python 3?")
 
 
 class BertTokenizer(object):

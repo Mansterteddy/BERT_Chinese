@@ -80,9 +80,9 @@ def evaluate(dataset, predictions, tokenizer):
     acc = 100.0 * acc / total
     return {'exact_match': exact_match, 'f1': f1, 'acc': acc}
 
-
 if __name__ == '__main__':
     from BERT import BertTokenizer
+    #tokenizer = BertTokenizer.from_pretrained("../Pretrained/BERT-Chinese/vocab.txt", do_lower_case=True)
     tokenizer = BertTokenizer.from_pretrained("../Pretrained/ERNIE/vocab.txt", do_lower_case=True)
     expected_version = '1.1'
     parser = argparse.ArgumentParser(

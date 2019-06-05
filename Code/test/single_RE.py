@@ -7,7 +7,7 @@ import torch
 from BERT import BertConfig, BertTokenizer, BertForSequenceClassification
 
 id2relation = []
-with open("../../Data/relation2id.txt", "r", encoding="utf8") as f:
+with open("../../Model/RE/relation2id.txt", "r", encoding="utf8") as f:
     for line in f:
         relation = line.strip().split(" ")[0]
         id2relation.append(relation)

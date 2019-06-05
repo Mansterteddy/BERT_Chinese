@@ -2,7 +2,7 @@
 
 Different NLP tasks based on BERT for Chinese using [huggingface's pytorch implementation](https://github.com/huggingface/pytorch-pretrained-BERT), includes:
 
-1. Precision model;
+1. Precision Model;
 
 2. Recall Model;
 
