@@ -547,10 +547,10 @@ input_ids = torch.LongTensor([[31, 11, 51, 99, 101], [15, 5, 0, 1, 2]])
 start_logits, end_logits = model(input_ids)
 print("start_logits: ", start_logits, " end_logits: ", end_logits)
 
-vocab_file = "../../Pretrained/BERT-Chinese/vocab.txt"
+vocab_file = "../../Pretrained/ERNIE/vocab.txt"
 tokenizer = BertTokenizer.from_pretrained(vocab_file, do_lower_case=True)
 model_state_dict = torch.load("../../Model/MRC/pytorch_model.bin", map_location="cpu")
-model = BertForQuestionAnswering.from_pretrained("../../Pretrained/BERT-Chinese/", state_dict=model_state_dict)
+model = BertForQuestionAnswering.from_pretrained("../../Pretrained/ERNIE/", state_dict=model_state_dict)
 model.eval()
 
 query = "Linux的作者是谁？"
@@ -558,6 +558,12 @@ psg = "托瓦兹利用个人时间及器材创造出了Linux这套系统。"
 
 query = "中国共产党的最终目的是什么？"
 psg = "中国共产党以马克思列宁主义、毛泽东思想、邓小平理论、“三个代表”重要思想、科学发展观及习近平新时代中国特色社会主义思想作为自己的行动指南，最终目的是实现共产主义的社会制度。中国共产党领导是中国特色社会主义最本质的特征。"
+
+query = "姚明的身高是多少？"
+psg = "1993年，姚明的身高达到了1米96  ，进入上海大鲨鱼青年队训练。一开始每天练10个小时，一周练6天。头一个月练的非常辛苦，瘦了40斤 [22]  。当时姚明与队友刘炜每个月只有10元的津贴收入，他们共同的爱好是训练结束后去打世嘉的街机 [14]  [23]  。"
+
+query = "蛋糕的原料是什么？"
+psg = "蛋糕是一种古老的西点，一般是由烤箱制作的，蛋糕是用鸡蛋、白糖、小麦粉为主要原料。以牛奶、果汁、奶粉、香粉、色拉油、水，起酥油、泡打粉为辅料。经过搅拌、调制、烘烤后制成一种像海绵的点心。"
 
 example = SquadExample(qas_id="1000", question_text=query, doc_tokens=psg, orig_answer_text=None, start_position=None, end_position=None)
 examples = []
